@@ -14,6 +14,7 @@ module.exports = {
 
 //Based on my Observation, async, await and Promises are called on tasks that might take a while to run, i.e task that won't run immediately, like saving to database, loooking for a user with an email, hashing a password, checking if password matches. In summary any action that's not immediate, we must use promises or call an async await on the callback function
 const User =require('../models/user')
+const Post = require('../models/post')
 const bcrypt = require('bcryptjs');
 const validator= require('validator')
 const jwt = require('jsonwebtoken')
@@ -80,8 +81,67 @@ module.exports = {
             ) 
         return { token: token, userId: user._id.toString() };
         
+      },
+
+      createPost: async function({ postInput }, req){
+          if (!req.isAuth){
+              const error = new Error('Not authenticated!');
+              error.code = 401;
+              throw error;
+          }
+          const errors = [];
+          if(validator.isEmpty(postInput.title) || !validator.isLength(postInput.title, { min: 5 })) {
+            errors.push({message: 'Title is invalid'})
+          }
+
+          if(validator.isEmpty(postInput.title) || !validator.isLength(postInput.title, { min: 5 })) {
+            errors.push({message: 'Title is invalid'})
+          }
+          if (errors.length >0){
+            const error = new Error('Invalid input')
+            error.data = errors;
+            error.code = 422
+            throw error;
+        }
+        const user = await User.findById(req.userId);
+        if(!user){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+
+        }
+        const post = new Post({
+            title : postInput.title,
+            content: postInput.content,
+            imageUrl :postInput.imageUrl,
+            creator: user
+
+        });
+        const createdPost = await post.save();
+        user.posts.push(createdPost);
+        await user.save()
+        //Add post to users post
+        return {...createdPost._doc, _id: createdPost._id.toString(), createdAt: createdPost.createdAt.toISOString(),updatedAt: createdPost.updatedAt.toISOString()
+        };
+
+      },
+      posts: async function(args, req){
+        if(!user){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+        }
+        const totalPosts = await Post.find().countDocuments();
+        const posts= await Post.find()
+        .sort({ createdAt:-1 })
+        .populate('creator');
+        return{ posts:posts.map(p=>{
+            return{...p._doc,_id:p._id.toString(), createdAt:p.createdAt.toISOString(), 
+                updatedAt: p.toISOString() }
+        }), totalPosts: totalPosts };
+
       }
 
 
 
-}
+};
