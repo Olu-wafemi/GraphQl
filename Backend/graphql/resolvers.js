@@ -75,7 +75,7 @@ module.exports = {
             throw error 
 
         }
-        const token = jwt.sign({
+        const token =  jwt.sign({
             userId: user._id.toString(),
             email: user.email}, 'secret',{ expiresIn: '1h' }
             ) 
@@ -126,20 +126,21 @@ module.exports = {
 
       },
       posts: async function(args, req){
-        if(!user){
+          
+        if(!req.isAuth){
             const error = new Error('Invalid user')
             error.code = 401;
             throw error;
         }
         const totalPosts = await Post.find().countDocuments();
+        
         const posts= await Post.find()
         .sort({ createdAt:-1 })
         .populate('creator');
         return{ posts:posts.map(p=>{
             return{...p._doc,_id:p._id.toString(), createdAt:p.createdAt.toISOString(), 
-                updatedAt: p.toISOString() }
+                updatedAt: p.updatedAt.toISOString() }
         }), totalPosts: totalPosts };
-
       }
 
 
