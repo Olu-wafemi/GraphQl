@@ -57,11 +57,12 @@ class Feed extends Component {
     const graphqlQuery = {
       query: `
       {
-        posts{
+        posts(page: ${page}){
           posts {
             _id
             title
             content
+            imageUrl
             creator{
               name
             }
@@ -160,41 +161,54 @@ class Feed extends Component {
     // Set up data (with image!)
     //FormData is used in this case because we want to pass an image, so we cannot pass a json in this case
     const formData = new FormData();
-    formData.append('title', postData.title);
-    formData.append('content', postData.content);
     formData.append('image', postData.image);
-
-    let graphqlQuery = {
-      query: `
-        mutation {
-          createPost(postInput:{title: "${postData.title}", content:"${postData.content}", imageUrl:"my url"}){
-            _id
-            title
-            content
-            imageUrl
-            creator {
-              name
-            }
-            createdAt
-      
-          }
-        }
-      
-      `
+    if (this.state.editPost ){
+      formData.append('oldPath', this.state.editPost.imagePath)
     }
-
-    fetch('http://localhost:2020/graphql',{
-
-      method: 'POST',
-      
-      body: JSON.stringify(graphqlQuery),
-      //This is used to send the jwt generated during login back to the backend to continue other requests, like deleting posts, editing posts, etc , authorization  header is used to send the jwt in this case
+    fetch('http://localhost:2020/post-image',{
+      method: 'PUT',
       headers: {
         Authorization: 'Bearer ' + this.props.token,
-        'Content-Type': 'application/json'
+        
+
+      },
+      body: formData
+    }).then(res=> res.json())
+    .then(fileResData=>{
+      const imageUrl = fileResData.filePath;
+      
+      let graphqlQuery = {
+        query: `
+          mutation {
+            createPost(postInput:{title: "${postData.title}", content:"${postData.content}", imageUrl:"${imageUrl}"}){
+              _id
+              title
+              content
+              imageUrl
+              creator {
+                name
+              }
+              createdAt
+        
+            }
+          }
+        
+        `
       }
-    })
-      .then(res => {
+  
+      return fetch('http://localhost:2020/graphql',{
+  
+        method: 'POST',
+        
+        body: JSON.stringify(graphqlQuery),
+        //This is used to send the jwt generated during login back to the backend to continue other requests, like deleting posts, editing posts, etc , authorization  header is used to send the jwt in this case
+        headers: {
+          Authorization: 'Bearer ' + this.props.token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+    }).then(res => {
         
         
         return res.json();
@@ -218,17 +232,19 @@ class Feed extends Component {
           title: resData.data.createPost.title,
           content: resData.data.createPost.content,
           creator: resData.data.createPost.creator,
-          createdAt: resData.data.createPost.createdAt
+          createdAt: resData.data.createPost.createdAt,
+          imagePath: resData.data.createPost.imageUrl
         };
         this.setState(prevState => {
           let updatedPosts = [...prevState.posts];
           if (prevState.editPost) {
             const postIndex = prevState.posts.findIndex(
               p => p._id === prevState.editPost._id
-            ); 
+            );
             updatedPosts[postIndex] = post;
-          } else if (prevState.posts.length < 2) {
-            updatedPosts = prevState.posts.concat(post);
+          } else {
+            updatedPosts.pop()
+            updatedPosts.unshift(post);
           }
           return {
             posts: updatedPosts,

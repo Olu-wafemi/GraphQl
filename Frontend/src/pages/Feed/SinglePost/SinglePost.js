@@ -14,25 +14,43 @@ class SinglePost extends Component {
 
   componentDidMount() {
     const postId = this.props.match.params.postId;
-    fetch('http://localhost:2020/feed/post/'+postId,{
-      //This is used to send the jwt generated during login back to the backend to continue other requests, like deleting posts, editing posts, etc , authorization  header is used to send the jwt in this case
-      headers: {
-        Authorization: 'Bearer ' + this.props.token
+    const graphqlQuery ={
+      query: `{
+        post(id: "${postId}"){
+          title
+          content
+          imageUrl
+          creator{
+            name
+          }
+          createdAt
+        }
       }
+      `
+    }
+    fetch('http://localhost:2020/graphql',{
+      method: 'POST',
+      headers:{
+      Authorization: 'Bearer '+ this.props.token
+      },
+      body:JSON.stringify(graphqlQuery)
     })
       .then(res => {
-        if (res.status !== 200) {
-          throw new Error('Failed to fetch status');
-        }
+        
         return res.json();
       })
       .then(resData => {
+        console.log(resData)
+        if (resData.errors) {
+          
+          throw new Error('Fetching Post failed!');
+        }
         this.setState({
-          title: resData.post.title,
-          author: resData.post.creator.name,
-          image: 'http://localhost:2020/'+ resData.post.imageUrl,
+          title: resData.data.post.title,
+          author: resData.data.post.creator.name,
+          image: 'http://localhost:2020/'+ resData.data.post.imageUrl,
           date: new Date(resData.post.createdAt).toLocaleDateString('en-US'),
-          content: resData.post.content
+          content: resData.data.post.content
         });
       })
       .catch(err => {

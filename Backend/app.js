@@ -1,6 +1,6 @@
 const express= require('express');
 const path = require('path')
-
+const fs = require('fs')
 
 const moongoose = require('mongoose');
 const multer = require('multer')
@@ -56,6 +56,24 @@ app.use((req,res,next)=>{
     
 });
 app.use(auth);
+//Logic for handling images for graphql, this is a res-api end point
+app.put('/post-image', (req,res,next)=>{
+    if(!req.isAuth){
+        throw new Error('Not Authenticated')
+
+    }
+    if(!req.file) {
+        return res.status(200).json({message: 'No file provided'});
+    }
+    //Check for the existence of a body field, means an old path was passed with the incoming request
+    if(req.body.oldPath){
+        //This means a new image was uploaded, with an existing path, so this check helps us to confirm that an old path was passed so we can go ahead to clear the old path
+        clearImage(req.body.oldPath);
+    }
+    return res.status(201).json({message: 'File stored', filePath: req.file.path})
+
+})
+
 
 app.use('/graphql',graphqlHTTP({
     schema: graphqlschema,
@@ -110,3 +128,9 @@ mongoose.connect(
 
 
 
+//Logic to clear existing images
+
+const clearImage = filePath =>{
+    filePath = path.join(__dirname, '..', filePath)
+    fs.unlink(filePath, err=> console.log(err))
+}

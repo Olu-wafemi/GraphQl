@@ -125,24 +125,54 @@ module.exports = {
         };
 
       },
-      posts: async function(args, req){
-          
+      posts: async function({page}, req){
+        //Check if a user is authenticated
         if(!req.isAuth){
             const error = new Error('Invalid user')
             error.code = 401;
             throw error;
         }
+        //After a user is authenticated proceeed to run this other codes
+        //If page is not defined set it to 1 instead
+        if (!page){
+            page =1;
+        }
+
+        const perPage = 2;
         const totalPosts = await Post.find().countDocuments();
         
         const posts= await Post.find()
         .sort({ createdAt:-1 })
+        .skip((page -1)* perPage) //Skip and limit are used for pagination, to set a specific items to be displayed per page.
+        
+        //Skip in this case will skip the items already displayed on the order pages, we're displayed two items per page in this case, so for page 2, (2-1 * 2) = 2, so skip the first two items already displayed in the first page.
+        .limit(perPage) 
         .populate('creator');
         return{ posts:posts.map(p=>{
             return{...p._doc,_id:p._id.toString(), createdAt:p.createdAt.toISOString(), 
                 updatedAt: p.updatedAt.toISOString() }
         }), totalPosts: totalPosts };
+      },
+
+
+      post: async function({ id }, req){
+        if(!req.isAuth){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+        }
+        const post = await Post.findById(id).populate('creator');
+        if (!post){
+            const error = new Error('No post found!')
+            error.code = 404;
+            throw error
+        }
+        return {
+            ...post.doc,
+            _id: post._id.toString(),
+            createdAt: post.createdAt.toISOString(),
+            updatedAt: post.updatedAt.toISOString() 
+        }
+
       }
-
-
-
 };
