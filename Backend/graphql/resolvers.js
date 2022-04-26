@@ -18,7 +18,7 @@ const Post = require('../models/post')
 const bcrypt = require('bcryptjs');
 const validator= require('validator')
 const jwt = require('jsonwebtoken')
-
+const { clearImage } = require('../util/file')
 module.exports = {
     //createUser(args,req){
         //const email = args.userInput.email
@@ -154,25 +154,117 @@ module.exports = {
         }), totalPosts: totalPosts };
       },
 
-
+      //Getting requests with destructuring
       post: async function({ id }, req){
+          //VCheck for authentication
+
+       if(!req.isAuth){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+        }
+        
+        //Find by Id and populate with the details of the creator and not the id alone
+        const post = await Post.findById(id).populate('creator');
+        if (!post){
+            const error = new Error('No post found!')
+            error.code = 404;
+            throw error;
+        }
+        return {
+            ...post._doc,
+            _id: post._id.toString(),
+           
+            createdAt: post.createdAt.toISOString(),
+            updatedAt: post.updatedAt.toISOString() 
+        }
+
+
+
+
+      },
+
+      updatePost: async function({ id, postInput}, req){
         if(!req.isAuth){
             const error = new Error('Invalid user')
             error.code = 401;
             throw error;
         }
-        const post = await Post.findById(id).populate('creator');
+        const post = await Post.findById(id).populate('creator')
         if (!post){
             const error = new Error('No post found!')
             error.code = 404;
-            throw error
+            throw error;
         }
-        return {
-            ...post.doc,
-            _id: post._id.toString(),
-            createdAt: post.createdAt.toISOString(),
-            updatedAt: post.updatedAt.toISOString() 
+        //Check if user who created post is the one trying to edit it
+        if (post.creator_id.toString() !== req.userId.toString()){
+            const error = new Error('Not Authorized!')
+            error.code = 403;
+            throw error;
+
+
         }
+        const errors = [];
+          if(validator.isEmpty(postInput.title) || !validator.isLength(postInput.title, { min: 5 })) {
+            errors.push({message: 'Title is invalid'})
+          }
+
+          if(validator.isEmpty(postInput.title) || !validator.isLength(postInput.title, { min: 5 })) {
+            errors.push({message: 'Title is invalid'})
+          }
+          if (errors.length >0){
+            const error = new Error('Invalid input')
+            error.data = errors;
+            error.code = 422
+            throw error;
+        }
+        post.title = postInput.title;
+        post.content = postInput.content
+        if (postInput.imageUrl != 'undefined'){
+            post.imageUrl = post.imageUrl;
+
+        }
+        const updatedPost = await post.save();
+        return { ...updatedPost._doc, _id: updatedPost._id.toString(), createdAt: updatedPost.createdAt.toISOString(), updatedAt: updatedAt. updatePost.updatedAt.toISOString()}
+
+
+
+      },
+      delePost: async function({ id }, req){
+        if(!req.isAuth){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+        }
+
+        const post = await Post.findById(id)
+        if (!post){
+            const error = new Error('No post found!')
+            error.code = 404;
+            throw error;
+        }
+        //Check if user who created post is the one trying to edit it
+        //Notice the use of creator and not creator_id in thhis case, because when searching for post in the database, we didn't populate it with creator in this case
+        if (post.creator.toString() !== req.userId.toString()){
+            const error = new Error('Not Authorized!')
+            error.code = 403;
+            throw error;
+
+
+        }
+        //Delete the image
+        clearImage(post.imageUrl);
+        //Delete the post
+        await Post.findByIdAndRemove(id);
+        //Find the post in the user
+        const user = await User.findById(req.userId);
+        //Delete the specific post from the posts of the user
+        user.posts.pull(id);
+        await user.save()
+        return true;
+
+
+
 
       }
 };

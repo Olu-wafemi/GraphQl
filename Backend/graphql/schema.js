@@ -61,6 +61,8 @@ module.exports = buildSchema(`
     type RootMutation {
         createUser(userInput: UserInputData): User
         createPost(postInput: PostInputData) : Post
+        updatePost(id: ID!, postInput: PostInputData): Post!
+        deletePost(id: ID!): Boolean
 
     }
   
@@ -85,6 +87,8 @@ module.exports = buildSchema(`
     }
 `)
 
+//post(id: ID!): Post! is the schema for a single post
+
 //Mutation is differerent fom query
 
-//Mutation s used to post data essentially, maube to the database
+//Mutation is used to post data essentially, maube to the database

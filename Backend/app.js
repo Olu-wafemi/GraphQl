@@ -1,6 +1,6 @@
 const express= require('express');
 const path = require('path')
-const fs = require('fs')
+
 
 const moongoose = require('mongoose');
 const multer = require('multer')
@@ -8,6 +8,7 @@ const { graphqlHTTP } = require('express-graphql')
 const graphqlschema = require('./graphql/schema')
 const graphqlresolver = require('./graphql/resolvers')
 const auth = require('./middleware/auth')
+const { clearImage  } = require('./util/file')
 
 const app = express()
 
@@ -22,9 +23,10 @@ const fileStorage = multer.diskStorage({
 })
 
 const fileFilter = (req,file,cb) =>{
-    if( file.mimetype === 'image/png' || file.mimetype==='images/jpg' || file.mimetype==='image/jpeg'){
+    if( file.mimetype === 'image/png' || 
+        file.mimetype==='images/jpg' || 
+        file.mimetype==='image/jpeg'){
         cb(null, true);
-
     } else{
         cb(null, false)
     }
@@ -130,7 +132,3 @@ mongoose.connect(
 
 //Logic to clear existing images
 
-const clearImage = filePath =>{
-    filePath = path.join(__dirname, '..', filePath)
-    fs.unlink(filePath, err=> console.log(err))
-}

@@ -23,6 +23,8 @@ class SinglePost extends Component {
           creator{
             name
           }
+          
+          
           createdAt
         }
       }
@@ -31,7 +33,8 @@ class SinglePost extends Component {
     fetch('http://localhost:2020/graphql',{
       method: 'POST',
       headers:{
-      Authorization: 'Bearer '+ this.props.token
+      Authorization: 'Bearer '+ this.props.token,
+      'Content-Type': 'application/json'
       },
       body:JSON.stringify(graphqlQuery)
     })
@@ -49,7 +52,7 @@ class SinglePost extends Component {
           title: resData.data.post.title,
           author: resData.data.post.creator.name,
           image: 'http://localhost:2020/'+ resData.data.post.imageUrl,
-          date: new Date(resData.post.createdAt).toLocaleDateString('en-US'),
+          date: new Date(resData.data.post.createdAt).toLocaleDateString('en-US'),
           content: resData.data.post.content
         });
       })
