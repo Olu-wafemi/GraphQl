@@ -39,12 +39,7 @@ const { ConnectionClosedEvent } = require('mongodb');
 const { rmdirSync } = require('fs');
 const { graphql } = require('graphql');
 //Parsing incoming json requests
-app.use(bodyParser.json())
-//Middleware for image Uploading
-app.use(multer({storage: fileStorage, fileFilter: fileFilter}).single('image'))
-//Serving the images folder to the frontend
 
-app.use('/images', express.static(path.join(__dirname, 'images')))
 
 app.use((req,res,next)=>{
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -57,6 +52,14 @@ app.use((req,res,next)=>{
     next()
     
 });
+app.use(bodyParser.json())
+//Middleware for image Uploading
+app.use(multer({storage: fileStorage, fileFilter: fileFilter}).single('image'))
+//Serving the images folder to the frontend
+
+
+
+app.use('/images', express.static(path.join(__dirname, 'images')))
 app.use(auth);
 //Logic for handling images for graphql, this is a res-api end point
 app.put('/post-image', (req,res,next)=>{

@@ -230,7 +230,7 @@ module.exports = {
 
 
       },
-      delePost: async function({ id }, req){
+      deletePost: async function({ id }, req){
         if(!req.isAuth){
             const error = new Error('Invalid user')
             error.code = 401;
@@ -266,5 +266,44 @@ module.exports = {
 
 
 
-      }
+      },
+      user: async function(args, req){
+        if(!req.isAuth){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+        }
+        const user = await User.findById(req.userId);
+        if (!user){
+            const error = new Error('No User found!')
+            error.code = 404;
+            throw error;
+
+
+        }
+        return {...user.doc_, _id: user._id.toString() }
+      },
+    updateStatus: async function({status}, req){
+        /*if(!req.isAuth){
+            const error = new Error('Invalid user')
+            error.code = 401;
+            throw error;
+        }*/
+        const user = await User.findById(req.userId);
+        
+        if (!user){
+            const error = new Error('No User found!')
+            error.code = 404;
+            throw error;
+
+
+        }
+        user.status = status
+        await user.save()
+        return { ...user._doc, _id: user._id.toString() }
+
+
+    }
+    
+
 };
